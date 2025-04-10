@@ -1,0 +1,19 @@
+# UBI-based Jenkins agent images available from the openshift project: https://github.com/openshift/jenkins
+FROM quay.io/openshift/origin-jenkins-agent-base:latest
+ENV USE_JAVA_VERSION=java-11
+ARG GITHUB_PAT
+
+RUN yum update -y \
+    && yum install -y podman buildah python39  \
+    && alternatives --set python3 /usr/bin/python3.9 
+
+
+# curl to fetch requirements.txt from a GitHub URL & instal then using pip install 
+RUN curl -H "Authorization: token ${GITHUB_PAT}" -L https://raw.github.com/<repo>/requirements.txt --output requirements.txt \
+    && sed -i 's|^pandas|#pandas|g' requirements.txt && echo 'pandas' >> requirements.txt \
+# ^^ .. so on comment out any unwanted install 
+
+RUN python3 -m pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt 
+
+RUN podman --version && echo "podman  version :\n $(podman --version)"
